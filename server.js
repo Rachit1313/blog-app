@@ -40,8 +40,7 @@ app.get("/blog", function(req,res){
         res.json(data)
     })
     .catch((err)=>{
-        res.send(err);
-        console.log(err);
+        res.status(500).send({ message: err })
     });
 });
 
@@ -51,8 +50,7 @@ app.get("/posts", function(req,res){
         res.json(data)
     })
     .catch((err)=>{
-        res.send(err);
-        console.log(err);
+        res.status(500).send({ message: err })
     });
 });
 
@@ -62,8 +60,7 @@ app.get("/categories", function(req,res){
         res.json(data)
     })
     .catch((err)=>{
-        res.send(err);
-        console.log(err);
+        res.status(500).send({ message: err })
     });
 });
 
