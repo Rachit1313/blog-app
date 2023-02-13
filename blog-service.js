@@ -1,5 +1,6 @@
 var posts = []
 var categories = []
+const { rejects } = require('assert');
 // var postsJson = require('./data/posts.json');
 // var categoriesJson = require('./data/catgories.json');
 const fs = require('fs');
@@ -51,4 +52,52 @@ module.exports.getCategories = function(){
         }
         resolve(categories);
     });
+}
+
+module.exports.addPost = function(postData){
+    return new Promise(function(resolve,rejects){
+        if (postData.published == undefined){
+            postData.published = false;
+        }
+        else{
+            postData.published = true;
+        }
+
+        postData.id = posts.length + 1;
+        posts.push(postData);
+        resolve(postData);
+    });
+}
+
+module.exports.getPostsByCategory = function(category){
+    return new Promise(function(resolve,rejects){
+        var filteredPosts = posts.filter(post => post.category == category);
+        if(filteredPosts.length == 0){
+            rejects("No Posts with the selected category found");
+        }
+        resolve(filteredPosts);
+    });
+}
+
+module.exports.getPostsByMinDate = function(minDateStr){
+    return new Promise(function(resolve,rejects){
+        var filteredPosts = [];
+        for (var i = 0; i < posts.length; i++)
+            if (new Date(posts[i].postDate) >= new Date(minDateStr))
+                filteredPosts.push(posts[i]);
+        if (filteredPosts.length == 0){
+            rejects("No posts found with date after the selected minimum date");
+        }
+        resolve(filteredPosts);
+    })
+}
+
+module.exports.getPostById = function(id){
+    return new Promise(function(resolve,rejects){
+        var filteredPosts = posts.filter(post => post.id === id);
+        if( filteredPosts.length == 0){
+            rejects("No posts found with ID selected");
+        }
+        resolve(filteredPosts);
+    })
 }

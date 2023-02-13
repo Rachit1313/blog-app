@@ -16,7 +16,18 @@ var path = require('path');
 var express = require("express");
 var blog = require('./blog-service.js');
 var app = express();
+const multer = require("multer");
+const cloudinary = require('cloudinary').v2
+const streamifier = require('streamifier')
 
+cloudinary.config({
+    cloud_name: 'dd1arp27e',
+    api_key: '772393949359259',
+    api_secret: 'pj5emzg-4RXqAuwmuWzMZSCoGi0',
+    secure: true
+   });
+
+const upload = multer(); // no { storage: storage } since we are not using disk storage   
 var HTTP_PORT = process.env.PORT || 8080;
 
 // call this function after the http server starts listening for requests
@@ -34,6 +45,48 @@ app.get("/about", function(req,res){
     res.sendFile(path.join(__dirname+'/views/about.html'));
 });
 
+//setup get route for /posts/add
+app.get('/posts/add', function(req, res) {
+  res.sendFile(path.join(__dirname, '/views/addPost.html'));
+});
+
+
+//setup post route for /posts/add
+app.post("/posts/add",upload.single("featureImage"),function(req,res){
+    // res.sendFile(path.join(__dirname+'/views/addPost.html'));
+    if (req.file) {
+      let streamUpload = (req) => {
+        return new Promise((resolve, reject) => {
+          let stream = cloudinary.uploader.upload_stream((error, result) => {
+            if (result) {
+              resolve(result);
+            } else {
+              reject(error);
+            }
+          });
+          streamifier.createReadStream(req.file.buffer).pipe(stream);
+        });
+      };
+      async function upload(req) {
+        let result = await streamUpload(req);
+        console.log(result);
+        return result;
+      }
+      upload(req).then((uploaded) => {
+        processPost(uploaded.url);
+      });
+    } else {
+      processPost("");
+    }
+    function processPost(imageUrl) {
+      req.body.featureImage = imageUrl;
+      // TODO: Process the req.body and add it as a new Blog Post before redirecting to /posts)
+      blog.addPost(req.body).then(() =>{
+        res.redirect("/posts");
+    });
+    } 
+});
+
 //setup another route to listen on /blog
 app.get("/blog", function(req,res){
     blog.getPublishedPosts().then(function(data){
@@ -46,12 +99,24 @@ app.get("/blog", function(req,res){
 
 //setup another route to listen on /posts
 app.get("/posts", function(req,res){
-    blog.getAllPosts().then(function(data){
-        res.json(data)
-    })
-    .catch((err)=>{
-        res.status(500).send({ message: err })
-    });
+  var category = req.query.category;
+  var minDate = req.query.minDate;
+  
+  if (category) {
+      blog.getPostsByCategory(category).then((data) => {
+          res.json(data);
+      }).catch((err) => res.send(err));
+  }
+  else if (minDate) {
+      blog.getPostsByMinDate(minDate).then((data) => {
+          res.json(data);
+      }).catch((err) => res.send(err));
+  }
+  else {
+      blog.getAllPosts().then((data) => {
+          res.json(data);
+      }).catch((err) => res.send(err));
+  }
 });
 
 //setup another route to listen on /categories
