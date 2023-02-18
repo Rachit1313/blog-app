@@ -129,10 +129,12 @@ app.get("/categories", function(req,res){
     });
 });
 
-//setup route for page not found if user enters something that doesn't matches with any route
-app.use((req, res) => {
-    res.status(404).send("Page Not Found");
-  });
+app.get('/post/:value', (req, res) => {
+    var value = req.params.value;
+    blog.getPostById(value).then((data) => {
+        res.send(data);
+    }).catch((err) => {res.send(err);});
+});
 
 // setup http server to listen on HTTP_PORT
 // app.listen(HTTP_PORT, onHttpStart);
@@ -142,3 +144,8 @@ blog.initialize().then(()=>{
 }).catch((err)=>{
     console.log(err);
 })
+
+// setup route for page not found if user enters something that doesn't matches with any route
+app.use((req, res) => {
+    res.status(404).send("Page Not Found");
+  });
