@@ -53,7 +53,8 @@ app.get("/about", function(req,res){
 
 //setup get route for /posts/add
 app.get('/posts/add', function(req, res) {
-  res.sendFile(path.join(__dirname, '/views/addPost.html'));
+  // res.sendFile(path.join(__dirname, '/views/addPost.html'));
+  res.render('addPost');
 });
 
 
