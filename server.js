@@ -162,10 +162,12 @@ app.get("/posts", function(req,res){
 //setup another route to listen on /categories
 app.get("/categories", function(req,res){
     blog.getCategories().then(function(data){
-        res.json(data)
+        // res.json(data)
+        res.render("categories", {categories: data});
     })
     .catch((err)=>{
-        res.status(500).send({ message: err })
+        // res.status(500).send({ message: err })
+        res.render("categories", {message: "no results"});
     });
 });
 
