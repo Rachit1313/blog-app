@@ -135,18 +135,27 @@ app.get("/posts", function(req,res){
   
   if (category) {
       blog.getPostsByCategory(category).then((data) => {
-          res.json(data);
-      }).catch((err) => res.send(err));
+          // res.json(data);
+          res.render("posts", {posts: data});
+      }).catch((err) => {
+        res.render("posts", {message: "no results"});
+      });
   }
   else if (minDate) {
       blog.getPostsByMinDate(minDate).then((data) => {
-          res.json(data);
-      }).catch((err) => res.send(err));
+          // res.json(data);
+          res.render("posts", {posts: data});
+      }).catch((err) =>{
+        res.render("posts", {message: "no results"});
+      });
   }
   else {
       blog.getAllPosts().then((data) => {
-          res.json(data);
-      }).catch((err) => res.send(err));
+          // res.json(data);
+          res.render("posts", {posts: data});
+      }).catch((err) =>{
+        res.render("posts", {message: "no results"});
+      });
   }
 });
 
