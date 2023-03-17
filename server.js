@@ -70,7 +70,7 @@ function onHttpStart() {
 app.use(express.static('public'));
 // setup a 'route' to listen on the default url path (http://localhost)
 app.get("/", function(req,res){
-    res.redirect('/about');
+    res.redirect('/blog');
 });
 
 // setup another route to listen on /about

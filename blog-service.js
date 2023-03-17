@@ -54,6 +54,15 @@ module.exports.getCategories = function(){
     });
 }
 
+const dateFormat = () => {
+    let d = new Date();
+    let day = d.getDate();
+    let month = d.getMonth() + 1;
+    let year = d.getFullYear();
+    // console.log(`${year}-${month}-${day}`);
+    return `${year}-${month}-${day}`;
+}
+
 module.exports.addPost = function(postData){
     return new Promise(function(resolve,rejects){
         if (postData.published == undefined){
@@ -62,8 +71,9 @@ module.exports.addPost = function(postData){
         else{
             postData.published = true;
         }
-
+        
         postData.id = posts.length + 1;
+        postData.postDate = dateFormat();
         posts.push(postData);
         resolve(postData);
     });
