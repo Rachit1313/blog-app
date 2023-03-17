@@ -20,6 +20,7 @@ const multer = require("multer");
 const cloudinary = require('cloudinary').v2
 const streamifier = require('streamifier');
 const exphbs = require("express-handlebars");
+const stripJs = require('strip-js');
 
 cloudinary.config({
     cloud_name: 'dd1arp27e',
@@ -43,6 +44,9 @@ app.engine('.hbs', exphbs.engine({ extname: '.hbs',helpers: {
     } else {
     return options.fn(this);
     }
+   },
+   safeHTML: function(context){
+    return stripJs(context);
    }
 }}));
 
@@ -118,14 +122,103 @@ app.post("/posts/add",upload.single("featureImage"),function(req,res){
     } 
 });
 
-//setup another route to listen on /blog
-app.get("/blog", function(req,res){
-    blog.getPublishedPosts().then(function(data){
-        res.json(data)
-    })
-    .catch((err)=>{
-        res.status(500).send({ message: err })
-    });
+app.get('/blog', async (req, res) => {
+
+  // Declare an object to store properties for the view
+  let viewData = {};
+
+  try{
+
+      // declare empty array to hold "post" objects
+      let posts = [];
+
+      // if there's a "category" query, filter the returned posts by category
+      if(req.query.category){
+          // Obtain the published "posts" by category
+          posts = await blog.getPublishedPostsByCategory(req.query.category);
+      }else{
+          // Obtain the published "posts"
+          posts = await blog.getPublishedPosts();
+      }
+
+      // sort the published posts by postDate
+      posts.sort((a,b) => new Date(b.postDate) - new Date(a.postDate));
+
+      // get the latest post from the front of the list (element 0)
+      let post = posts[0]; 
+
+      // store the "posts" and "post" data in the viewData object (to be passed to the view)
+      viewData.posts = posts;
+      viewData.post = post;
+
+  }catch(err){
+      viewData.message = "no results";
+  }
+
+  try{
+      // Obtain the full list of "categories"
+      let categories = await blog.getCategories();
+
+      // store the "categories" data in the viewData object (to be passed to the view)
+      viewData.categories = categories;
+  }catch(err){
+      viewData.categoriesMessage = "no results"
+  }
+
+  // render the "blog" view with all of the data (viewData)
+  res.render("blog", {data: viewData})
+
+});
+
+
+app.get("/blog/:id", async (req, res) => {
+  // Declare an object to store properties for the view
+  let viewData = {};
+
+  try {
+
+      // declare empty array to hold "post" objects
+      let posts = [];
+
+      // if there's a "category" query, filter the returned posts by category
+      if (req.query.category) {
+          // Obtain the published "posts" by category
+          posts = await blog.getPublishedPostsByCategory(req.query.category);
+      } else {
+          // Obtain the published "posts"
+          posts = await blog.getPublishedPosts();
+      }
+
+      // sort the published posts by postDate
+      posts.sort((a, b) => new Date(b.postDate) - new Date(a.postDate));
+
+      // store the "posts" and "post" data in the viewData object (to be passed to the view)
+      viewData.posts = posts;
+  } catch (err) {
+      viewData.message = "no results";
+  }
+
+  try {
+      // Obtain the post by "id"
+      let post = await blog.getPostById(req.params.id);
+      viewData.post = post[0]
+  } catch (err) {
+      viewData.message = "no results";
+  }
+
+  try {
+      // Obtain the full list of "categories"
+      let categories = await blog.getCategories();
+
+      // store the "categories" data in the viewData object (to be passed to the view)
+      viewData.categories = categories;
+  } catch (err) {
+      viewData.categoriesMessage = "no results"
+  }
+
+  // render the "blog" view with all of the data (viewData)
+  res.render("blog", {data: viewData})
+  // res.send(viewData)
 });
 
 //setup another route to listen on /posts

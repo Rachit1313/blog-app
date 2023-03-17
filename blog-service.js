@@ -101,3 +101,14 @@ module.exports.getPostById = function(id){
         resolve(filteredPosts);
     })
 }
+
+module.exports. getPublishedPostsByCategory = function(category){
+    return new Promise(function(resolve,rejects){
+        if (posts.length != 0) {
+            var filteredPosts = posts.filter(post => post.published == true && post.category == category);
+            resolve(filteredPosts);
+        }
+        else
+            reject({message: 'No Data'});
+    })
+}
