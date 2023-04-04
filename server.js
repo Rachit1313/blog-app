@@ -29,6 +29,7 @@ cloudinary.config({
     secure: true
    });
 
+   app.use(express.urlencoded({extended: true}));
    
 app.engine('.hbs', exphbs.engine({ extname: '.hbs',helpers: {
   navLink: function(url, options){
@@ -87,8 +88,13 @@ app.get("/about", function(req,res){
 
 //setup get route for /posts/add
 app.get('/posts/add', function(req, res) {
-  // res.sendFile(path.join(__dirname, '/views/addPost.html'));
-  res.render('addPost');
+  blog.getCategories()
+  .then((categories) => {
+    res.render("addPost", { categories: categories });
+  })
+  .catch(() => {
+    res.render("addPost", { categories: [] });
+  });
 });
 
 
@@ -300,7 +306,36 @@ blog.initialize().then(()=>{
     console.log(err);
 })
 
+app.get("/categories/add", (req, res) => {
+    res.render('addCategory')
+});
+
+app.post("/categories/add", (req, res) => {
+    blog.addCategory(req.body).then(() => {
+        res.redirect('/categories');
+    }).catch(() => {
+        console.log("Unable to Add category");
+    })  
+});
+
+app.get("/categories/delete/:id", (req, res) => {
+    blog.deleteCategoryById(req.params.id).then(() => {
+        res.redirect('/categories');
+    }).catch(() => {
+        console.log("Unable to Remove Category / Category not found)");
+    })
+});
+
+app.get("/posts/delete/:id", (req, res) => {
+    blog.deletePostById(req.params.id).then(() => {
+        res.redirect('/posts');
+    }).catch(() => {
+        console.log("Unable to Remove Post / Post not found");
+    })
+});
+
+
 // setup route for page not found if user enters something that doesn't matches with any route
 app.use((req, res) => {
-    res.status(404).send("Page Not Found");
-  });
+  res.status(404).send("Page Not Found");
+});

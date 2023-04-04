@@ -71,15 +71,7 @@ module.exports.getCategories = function(){
             })
         })
     });
-}
-
-const dateFormat = () => {
-    let d = new Date();
-    let day = d.getDate();
-    let month = d.getMonth() + 1;
-    let year = d.getFullYear();
-    return `${year}-${month}-${day}`;
-}
+};
 
 module.exports.addPost = function(postData){
     return new Promise((resolve, reject) => {
@@ -105,7 +97,7 @@ module.exports.getPostsByCategory = function(category){
         sequelize.sync().then(function() {
             Post.findAll({
                 where: {
-                    category: m_category
+                    category: category
                 }
             }).then((data) => {
                 resolve(data);
@@ -139,7 +131,7 @@ module.exports.getPostById = function(id){
         sequelize.sync().then(function() {
             Post.findAll({
                 where: {
-                    id: m_id
+                    id: id
                 }
             }).then((data) => {
                 resolve(data);
@@ -157,7 +149,7 @@ module.exports. getPublishedPostsByCategory = function(category){
             Post.findAll({
                 where: {
                     published: true,
-                    categor: m_category
+                    category: category
                 }
             }).then((data) => {
                 resolve(data);
@@ -166,4 +158,50 @@ module.exports. getPublishedPostsByCategory = function(category){
             })
         })
     });
+}
+
+module.exports.addCategory = function(categoryData){
+    return new Promise ((resolve,reject)=>{
+        if (categoryData.category == "")
+            categoryData.category = null;
+        sequelize.sync().then(function(){
+            Category.create(categoryData).then(() => {
+                resolve("Category added");
+            }).catch(() => {
+                reject("unable to create category");
+            })
+        })
+    })
+}
+
+module.exports.deleteCategoryById = function(id){
+    return new Promise ((resolve,reject)=>{
+        sequelize.sync().then(function(){
+            Category.destroy({
+                where: {
+                    id: id
+                }
+            }).then(() => {
+                resolve("Data was Deleted");
+            }).catch(() => {
+                reject("Unable to delete category")
+            });
+        })
+    })
+}
+
+module.exports.deletePostById = function(id){
+    return new Promise ((resolve,reject)=>{
+        sequelize.sync().then(function(){
+            Post.destroy({
+                where: {
+                    id: id
+                }
+            }).then(() => {
+                resolve("Data was Deleted")
+            }).catch(() => {
+                reject("Unable to delete category")
+            });
+        })
+    })
 }
