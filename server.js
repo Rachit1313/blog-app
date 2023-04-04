@@ -271,7 +271,12 @@ app.get("/posts", function(req,res){
 app.get("/categories", function(req,res){
     blog.getCategories().then(function(data){
         // res.json(data)
+        if (data.length > 0){
         res.render("categories", {categories: data});
+        }
+        else{
+          res.render("categories",{ message: "no results" });
+        }
     })
     .catch((err)=>{
         // res.status(500).send({ message: err })
