@@ -4,7 +4,7 @@
 * of this assignment has been copied manually or electronically from any other source
 * (including 3rd party web sites) or distributed to other students.
 *
-* Name: Rachit Chawla Student ID: 162759211 Date: 4th April, 2023
+* Name: Rachit Chawla Student ID: 162759211 Date: 17th April, 2023
 *
 * Cyclic Web App URL: https://itchy-red-millipede.cyclic.app
 *
@@ -15,6 +15,8 @@
 var path = require('path');
 var express = require("express");
 var blog = require('./blog-service.js');
+var authData = require('./auth-service.js');
+var clientSessions = require("client-sessions");
 var app = express();
 const multer = require("multer");
 const cloudinary = require('cloudinary').v2
@@ -29,7 +31,42 @@ cloudinary.config({
     secure: true
    });
 
-   app.use(express.urlencoded({extended: true}));
+
+app.use(express.static("public"));
+
+app.use(clientSessions({
+  cookieName: "session", // this is the object name that will be added to 'req'
+  secret: "web322blogapplication", // this should be a long un-guessable string.
+  duration: 2 * 60 * 1000, // duration of the session in milliseconds (2 minutes)
+  activeDuration: 1000 * 60 // the session will be extended by this many ms each request (1 minute)
+}));
+
+app.use(function(req, res, next) {
+  res.locals.session = req.session;
+  next();
+});
+
+function ensureLogin(req, res, next) {
+  if (!req.session.user) {
+    res.redirect("/login");
+  } else {
+    next();
+  }
+}
+
+app.use(function (req, res, next) {
+  let route = req.path.substring(1);
+  app.locals.activeRoute =
+    "/" +
+    (isNaN(route.split("/")[1])
+      ? route.replace(/\/(?!.*)/, "")
+      : route.replace(/\/(.*)/, ""));
+  app.locals.viewingCategory = req.query.category;
+  next();
+});
+
+
+app.use(express.urlencoded({extended: true}));
    
 app.engine('.hbs', exphbs.engine({ extname: '.hbs',helpers: {
   navLink: function(url, options){
@@ -87,7 +124,7 @@ app.get("/about", function(req,res){
 });
 
 //setup get route for /posts/add
-app.get('/posts/add', function(req, res) {
+app.get('/posts/add',ensureLogin, function(req, res) {
   blog.getCategories()
   .then((categories) => {
     res.render("addPost", { categories: categories });
@@ -99,7 +136,7 @@ app.get('/posts/add', function(req, res) {
 
 
 //setup post route for /posts/add
-app.post("/posts/add",upload.single("featureImage"),function(req,res){
+app.post("/posts/add", ensureLogin,upload.single("featureImage"),function(req,res){
     // res.sendFile(path.join(__dirname+'/views/addPost.html'));
     if (req.file) {
       let streamUpload = (req) => {
@@ -234,7 +271,7 @@ app.get("/blog/:id", async (req, res) => {
 });
 
 //setup another route to listen on /posts
-app.get("/posts", function(req,res){
+app.get("/posts",ensureLogin, function(req,res){
   var category = req.query.category;
   var minDate = req.query.minDate;
   if (category) {
@@ -274,7 +311,7 @@ app.get("/posts", function(req,res){
 });
 
 //setup another route to listen on /categories
-app.get("/categories", function(req,res){
+app.get("/categories",ensureLogin, function(req,res){
     blog.getCategories().then(function(data){
         // res.json(data)
         if (data.length > 0){
@@ -290,7 +327,7 @@ app.get("/categories", function(req,res){
     });
 });
 
-app.get('/post/:value', (req, res) => {
+app.get('/post/:value',ensureLogin, (req, res) => {
     var value = req.params.value;
     blog.getPostById(value).then((data) => {
         res.send(data);
@@ -299,18 +336,19 @@ app.get('/post/:value', (req, res) => {
 
 // setup http server to listen on HTTP_PORT
 // app.listen(HTTP_PORT, onHttpStart);
+blog.initialize()
+.then(authData.initialize())
+.then(function(){
+    app.listen(HTTP_PORT, onHttpStart);
+}).catch(function(err){
+    console.log("unable to start server: " + err);
+});
 
-blog.initialize().then(()=>{
-    app.listen(HTTP_PORT,onHttpStart);
-}).catch((err)=>{
-    console.log(err);
-})
-
-app.get("/categories/add", (req, res) => {
+app.get("/categories/add",ensureLogin, (req, res) => {
     res.render('addCategory')
 });
 
-app.post("/categories/add", (req, res) => {
+app.post("/categories/add",ensureLogin, (req, res) => {
     blog.addCategory(req.body).then(() => {
         res.redirect('/categories');
     }).catch(() => {
@@ -318,7 +356,7 @@ app.post("/categories/add", (req, res) => {
     })  
 });
 
-app.get("/categories/delete/:id", (req, res) => {
+app.get("/categories/delete/:id",ensureLogin, (req, res) => {
     blog.deleteCategoryById(req.params.id).then(() => {
         res.redirect('/categories');
     }).catch(() => {
@@ -326,13 +364,61 @@ app.get("/categories/delete/:id", (req, res) => {
     })
 });
 
-app.get("/posts/delete/:id", (req, res) => {
+app.get("/posts/delete/:id",ensureLogin, (req, res) => {
     blog.deletePostById(req.params.id).then(() => {
         res.redirect('/posts');
     }).catch(() => {
         console.log("Unable to Remove Post / Post not found");
     })
 });
+
+app.get("/login", (req, res) => {
+  res.render('login');
+})
+
+// ========== Get Register Page Route ==========
+app.get("/register", (req, res) => {
+  res.render('register');
+})
+
+// ========== Post Login Page Route ==========
+app.post("/login", (req, res) => {
+  req.body.userAgent = req.get('User-Agent');
+  authData.checkUser(req.body)
+    .then((user) => {
+      req.session.user = {
+        userName: user.userName,
+        email: user.email,
+        loginHistory: user.loginHistory
+      };
+      res.redirect('/posts');
+    })
+    .catch((err) => {
+      res.render('login', {errorMessage: err, userName: req.body.userName});
+    });
+})
+
+// ========== Post Register Page Route ==========
+app.post("/register", (req, res) => {
+   authData.registerUser(req.body)
+   .then(() => {
+     res.render('register', { successMessage: 'User created' });
+   })
+   .catch((err) => {
+     res.render('register', { errorMessage: err, userName: req.body.userName });
+   });
+})
+
+// ========== Logout Route ==========
+app.get("/logout", (req, res) => {
+  req.session.reset();
+  res.redirect("/");
+})
+
+// ========== User History Route ==========
+app.get("/userHistory", ensureLogin, (req, res) => {
+  res.render("userHistory");
+}); 
 
 
 // setup route for page not found if user enters something that doesn't matches with any route
